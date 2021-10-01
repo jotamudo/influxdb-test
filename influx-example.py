@@ -3,10 +3,11 @@
 from influxdb_client import InfluxDBClient, Point
 from datetime import datetime
 import pandas as pd
+from influxdb_client.client.write_api import SYNCHRONOUS
 
 
 #Setup database
-client = InfluxDBClient(url='localhost:8086', token='Zk3TVEXLNN_MLHaKyqM36mUPL7eaAkWcvRZOQVNH-jgM1usJwWWKG486xuWdejbOOlg22Snl7tJKwoQu2NNzBQ==', org='org')
+client = InfluxDBClient(url='http://localhost:8086', token='mH0GWU72y-kEXd0ql7WwzPb54KSCC4DjIqUaVX4UCDhofIWB7IiQ3NXNA4Q6-FfaoQj2E_O8cWIF38kY-CQdpg==', org='org')
 # client.create_database('mydb')
 # client.get_list_database()
 # client.switch_database('mydb')
@@ -26,14 +27,14 @@ data = {
     }
 }
 json_payload.append(data)
-data = pd.read_csv('./flash_2019_2_24_1.csv')
-write_client = client.write_api()
-write_client.write('bucket', 'org', record=data, data_frame_measurement_name='data',
-                   data_frame_tag_columns=['flash_id']
-                   )
+data = pd.read_csv('./aes2020.csv')
+write_client = client.write_api(write_options=SYNCHRONOUS)
+query_api = client.query_api()
+write_client.write('bucket', 'org', record=data, data_frame_measurement_name='data', data_frame_tag_columns=['flash_id'])
 
-#Send our payload
+results = query_api.query_data_frame('from(bucket:"bucket") '
+                                        '|> range(start: 0) '
+                                        '|> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value") '
+                                        '|> keep(columns: ["Years", "Units"])')
 
-
-# Select statement
-
+print(results)
